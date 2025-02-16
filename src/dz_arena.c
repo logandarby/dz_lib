@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "dz_core.h"
+#include "dz_debug.h"
 
 const size_t DZ_ARENA_DEFAULT_MAX_SIZE = 1000000;  // 1MB
 

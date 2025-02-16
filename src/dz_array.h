@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "dz_core.h"
+#include "dz_debug.h"
 
 extern const size_t DZ_ARR_RESIZE_UP;
 extern const size_t DZ_ARR_INIT_CAPACITY;

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <limits.h>
 
-#include "dz_core.h"
+#include "dz_debug.h"
 
 typedef struct DzHashmapItem {
   char *key;

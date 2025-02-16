@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "dz_core.c"
-#include "dz_core.h"
+#include "dz_debug.c"
+#include "dz_debug.h"
 }
 
 TEST(Errors, EachTrace) {
