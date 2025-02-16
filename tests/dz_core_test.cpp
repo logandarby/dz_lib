@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "dz_debug.c"
 #include "dz_debug.h"
 }
 

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "dz_arena.c"
+#include "dz_arena.h"
 }
 
 TEST(Arena, Initialization) {

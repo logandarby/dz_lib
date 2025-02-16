@@ -5,14 +5,11 @@
       "name": "default",
       "description": "Default DEBUG build for devs",
       "hidden": false,
-      "generator": "Ninja",
+      "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
-      },
-      "environment": {
-        "CFLAGS": "-fsanitize=address"
       }
     },
     {
