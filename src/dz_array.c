@@ -58,7 +58,7 @@ void dz_arr_remove_impl(DZArrayHeader *header, size_t index_to_remove,
                         size_t element_size, void **arr_ptr) {
   uint8_t *array_bytes = (uint8_t *)*arr_ptr;
   for (size_t i = index_to_remove; i < header->length; i++) {
-    memcpy(&array_bytes[i * element_size], &array_bytes[(i + 1) * element_size],
+    memmove(&array_bytes[i * element_size], &array_bytes[(i + 1) * element_size],
            element_size);
   }
   header->length--;
@@ -73,7 +73,7 @@ void dz_arr_shift_at_index_impl(DZArrayHeader *header, size_t index_to_add,
   dz_arr_maybe_grow(header, element_size, arr_ptr);
   uint8_t *array_bytes = (uint8_t *)*arr_ptr;
   for (size_t i = header->length - 1; i > index_to_add; i--) {
-    memcpy(&array_bytes[i * element_size], &array_bytes[(i - 1) * element_size],
+    memmove(&array_bytes[i * element_size], &array_bytes[(i - 1) * element_size],
            element_size);
   }
 }
