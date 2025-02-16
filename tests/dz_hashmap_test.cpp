@@ -5,40 +5,39 @@
 extern "C"
 {
 #include "dz_hashmap.c"
-#include "prime.c"
 }
 
-TEST(HashMap_Item, Initialization)
+TEST(DzHashmap_Item, Initialization)
 {
-    HM_Item *item = hm_item_create("key1", "value");
+    DzHashmapItem *item = hm_item_create("key1", "value");
     ASSERT_EQ(strcmp(item->key, "key1"), 0);
     ASSERT_EQ(strcmp(item->value, "value"), 0);
     hm_item_free(item);
 }
 
-TEST(HashMap, Initialization)
+TEST(DzHashmap, Initialization)
 {
-    HM_ERROR error = HM_ERROR_None;
-    HashMap hm = hm_init(&error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    DzHmError error = DzHmError_None;
+    DzHashmap hm = hm_init(&error);
+    ASSERT_EQ(error, DzHmError_None);
     ASSERT_TRUE(hm->items);
     ASSERT_EQ(hm->capacity, HM_INIT_CAPACITY);
     ASSERT_EQ(hm->count, 0);
     for (size_t i = 0; i < hm->capacity; i++)
     {
-        ASSERT_EQ(hm->items[i], (HM_Item *)NULL);
+        ASSERT_EQ(hm->items[i], (DzHashmapItem *)NULL);
     }
     hm_free(hm);
 }
 
-TEST(HashMap, InsertAndDelete)
+TEST(DzHashmap, InsertAndDelete)
 {
-    HM_ERROR error = HM_ERROR_None;
-    HashMap hm = hm_init(&error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    DzHmError error = DzHmError_None;
+    DzHashmap hm = hm_init(&error);
+    ASSERT_EQ(error, DzHmError_None);
     ASSERT_EQ(hm_count(hm), 0);
     hm_add(hm, "key1", "value1", &error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    ASSERT_EQ(error, DzHmError_None);
     ASSERT_EQ(hm_count(hm), 1);
     const char *value = hm_get(hm, "key1");
     ASSERT_EQ(strcmp(value, "value1"), 0);
@@ -49,40 +48,40 @@ TEST(HashMap, InsertAndDelete)
     hm_free(hm);
 }
 
-TEST(HashMap, InvalidSearch)
+TEST(DzHashmap, InvalidSearch)
 {
-    HM_ERROR error = HM_ERROR_None;
-    HashMap hm = hm_init(&error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    DzHmError error = DzHmError_None;
+    DzHashmap hm = hm_init(&error);
+    ASSERT_EQ(error, DzHmError_None);
     hm_add(hm, "key1", "value1", &error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    ASSERT_EQ(error, DzHmError_None);
     const char *value = hm_get(hm, "INVALIDKEY");
     ASSERT_EQ(value, (char *)NULL);
     hm_free(hm);
 }
 
-TEST(HashMap, InvalidDelete)
+TEST(DzHashmap, InvalidDelete)
 {
-    HM_ERROR error = HM_ERROR_None;
-    HashMap hm = hm_init(&error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    DzHmError error = DzHmError_None;
+    DzHashmap hm = hm_init(&error);
+    ASSERT_EQ(error, DzHmError_None);
     hm_add(hm, "key1", "value1", &error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    ASSERT_EQ(error, DzHmError_None);
     ASSERT_EQ(hm_count(hm), 1);
     hm_delete(hm, "INVALIDKEY");
     ASSERT_EQ(hm_count(hm), 1);
     hm_free(hm);
 }
 
-TEST(HashMap, InsertAndUpdate)
+TEST(DzHashmap, InsertAndUpdate)
 {
-    HM_ERROR error = HM_ERROR_None;
-    HashMap hm = hm_init(&error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    DzHmError error = DzHmError_None;
+    DzHashmap hm = hm_init(&error);
+    ASSERT_EQ(error, DzHmError_None);
     hm_add(hm, "key1", "value1", &error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    ASSERT_EQ(error, DzHmError_None);
     hm_add(hm, "key1", "value2", &error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    ASSERT_EQ(error, DzHmError_None);
     const char *value = hm_get(hm, "key1");
     ASSERT_EQ(hm_count(hm), 1);
     ASSERT_EQ(strcmp(value, "value2"), 0);
@@ -91,11 +90,11 @@ TEST(HashMap, InsertAndUpdate)
     hm_free(hm);
 }
 
-TEST(HashMap, Resize)
+TEST(DzHashmap, Resize)
 {
-    HM_ERROR error = HM_ERROR_None;
-    HashMap hm = hm_init(&error);
-    ASSERT_EQ(error, HM_ERROR_None);
+    DzHmError error = DzHmError_None;
+    DzHashmap hm = hm_init(&error);
+    ASSERT_EQ(error, DzHmError_None);
     for (size_t i = 0; i < HM_INIT_CAPACITY; i++)
     {
         char str[256];

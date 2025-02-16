@@ -1,25 +1,43 @@
 #pragma once
 
+// Hashmap implementation for strings.
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 extern const size_t HM_INIT_CAPACITY;
-typedef struct HM_Inst *HashMap;
+typedef struct DzHashmapInstance *DzHashmap;
 
-typedef enum HM_ERROR {
-  HM_ERROR_None,
-  HM_ERROR_Memory,
-  HM_ERROR_Count
-} HM_ERROR;
+typedef enum DzHmError {
+  DzHmError_None,    // No error
+  DzHmError_Memory,  // Error with memory allocation
 
-const char *hm_error_get_failure_str(enum HM_ERROR error_enum);
-bool hm_has_error(HM_ERROR *error_ref);
+  DzHmError_Count
+} DzHmError;
 
-HashMap hm_init(HM_ERROR *error);
-void hm_free(HashMap hm);
-const char *hm_get(HashMap hm, const char *key);
-void hm_add(HashMap hm, const char *key, const char *value,
-            HM_ERROR *error);
-void hm_delete(HashMap hm, const char *item);
-size_t hm_count(HashMap hm);
+const char *hm_error_get_failure_str(enum DzHmError error_enum);
+bool hm_has_error(DzHmError *error_ref);
+
+// Initializes a Hashmap
+// Caller must free the hashmap using hm_free
+DzHashmap hm_init(DzHmError *error);
+
+// Frees a hashmap
+void hm_free(DzHashmap hm);
+
+// Get the value of the hashmap stored with key. If nothing is found,
+// returns NULL
+const char *hm_get(DzHashmap hm, const char *key);
+
+// Adds a new key-value pair to the hashmap. The key and value are
+// copied in, so memory management is not needed
+void hm_add(DzHashmap hm, const char *key, const char *value,
+            DzHmError *error);
+
+// Deletes a a key-value pair from the hashmap based on a key value.
+// If a corresponding value is not stored, then this is a no-op
+void hm_delete(DzHashmap hm, const char *key);
+
+// Gets the count of items stored in the hashmap
+size_t hm_count(DzHashmap hm);
