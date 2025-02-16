@@ -4,22 +4,23 @@
 // All nasty macros will be stored here (To contain the damage!)
 //
 // Options:
-//  - DZ_ENABLE_DEBUGBREAK  - enables debug breaking
-//  - DZ_ENABLE_LOGS        - Allows the program to log (Error logging
-//  is not affected by this)
-//  - DZ_ENABLE_ASSERTS     - Allows the program to assert conditions
+//  - DZ_ENABLE_DEBUGBREAK = 1  - enables debug breaking
+//  - DZ_ENABLE_LOGS = 1        - Allows the program to log (Error
+//  logging is not affected by this)
+//  - DZ_ENABLE_ASSERTS = 1     - Allows the program to assert
+//  conditions
 //
-// These are all enabled when debugging is enabled using the _DEBUG
+// These are all enabled when debugging is enabled using the DZ_DEBUG
 // flag
 
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef _DEBUG
-#define DZ_ENABLE_ASSERTS
-#define DZ_ENABLE_DEBUGBREAK
-#define DZ_ENABLE_LOGS
+#ifdef DZ_DEBUG
+#define DZ_ENABLE_ASSERTS 1
+#define DZ_ENABLE_DEBUGBREAK 1
+#define DZ_ENABLE_LOGS 1
 #endif
 
 // Common util macros
@@ -40,7 +41,7 @@ extern bool str_eq(const char *s1, const char *s2, size_t n);
 // similar to printf DZ_WARNNO and DZ_ERRNO are the same as the Warn
 // and Error levels, but they also log the current error number as
 // defined in errno.h
-#ifdef DZ_ENABLE_LOGS
+#if DZ_ENABLE_LOGS == 1
 #define DZ_TRACE(...) \
   dz_impl_log(stdout, DzErrorLevel_TRACE, false, __VA_ARGS__)
 #define DZ_INFO(...) \
@@ -62,7 +63,7 @@ extern bool str_eq(const char *s1, const char *s2, size_t n);
   dz_impl_log(stderr, DzErrorLevel_ERROR, true, __VA_ARGS__)
 
 // DEBUGBREAK -- Breaks when encountered
-#ifdef DZ_ENABLE_DEBUGBREAK
+#if DZ_ENABLE_DEBUGBREAK == 1
 #include <signal.h>
 #define DZ_DEBUGBREAK(...) raise(SIGTRAP)
 #else
@@ -70,7 +71,7 @@ extern bool str_eq(const char *s1, const char *s2, size_t n);
 #endif
 
 // ASSERTIONS -- Asserts a condition, optionally with a message
-#ifdef DZ_ENABLE_ASSERTS
+#if DZ_ENABLE_ASSERTS == 1
 // Asserts a condition.
 // Arguments:
 // Condition - The condition to assert

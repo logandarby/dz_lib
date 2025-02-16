@@ -1,4 +1,4 @@
-#include "dz_core.h"
+#include "dz_debug.h"
 
 #include <errno.h>
 #include <stdarg.h>
