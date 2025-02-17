@@ -1,6 +1,7 @@
-#include <cstddef>
 #include <gtest/gtest.h>
 #include <stdio.h>
+
+#include <cstddef>
 
 extern "C" {
 #include "dz_array.h"
@@ -55,12 +56,14 @@ TEST(Array, PushingAboveCapacity) {
 
 TEST(Array, PushingAboveCapacityThenShrink) {
   DZArray(int) arr = NULL;
-  for (size_t i = 0; i < DZ_ARR_INIT_CAPACITY * DZ_ARR_RESIZE_UP; i++) {
+  for (size_t i = 0; i < DZ_ARR_INIT_CAPACITY * DZ_ARR_RESIZE_UP;
+       i++) {
     dz_arrpush(arr, i);
   }
   ASSERT_EQ(dz_array_header(arr)->capacity,
             DZ_ARR_INIT_CAPACITY * DZ_ARR_RESIZE_UP);
-  for (size_t i = 0; i < DZ_ARR_INIT_CAPACITY * DZ_ARR_RESIZE_UP - 1; i++) {
+  for (size_t i = 0; i < DZ_ARR_INIT_CAPACITY * DZ_ARR_RESIZE_UP - 1;
+       i++) {
     dz_arrpop(arr);
   }
   ASSERT_EQ(dz_array_header(arr)->capacity, DZ_ARR_INIT_CAPACITY);
@@ -168,6 +171,27 @@ TEST(Array, Insert_at_beginning) {
 
   dz_arrfree(arr);
 }
+
+TEST(Array, Remove_and_replace) {
+  printf("Size of double %zu\n", sizeof(double));
+  DZArray(double) arr = NULL;
+  for (size_t i = 0; i < 10; i++) {
+    dz_arrpush(arr, (double)i);
+  }
+  ASSERT_EQ(dz_arrlen(arr), 10);
+  ASSERT_EQ(arr[9], 9);
+  ASSERT_EQ(arr[3], 3);
+  dz_arrremove_and_replace(arr, 3);
+  ASSERT_EQ(dz_arrlen(arr), 9);  // length should be one less
+  ASSERT_EQ(arr[8], 8);
+  ASSERT_EQ(arr[3], 9);  // Index should be replaced w last element
+  // Surrounding bytes should be kept intact
+  ASSERT_EQ(arr[2], 2);
+  ASSERT_EQ(arr[4], 4);
+
+  dz_arrfree(arr);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

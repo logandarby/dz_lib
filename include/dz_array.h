@@ -22,7 +22,7 @@ extern const size_t DZ_ARR_INIT_CAPACITY;
 
 // Frees the array a
 #define dz_arrfree(a) \
-  ((!a) ? (void)0 : dz_arr_free_impl(dz_array_header(a)))
+  ((!a) ? (void)0 : dz_impl_arr_free(dz_array_header(a)))
 
 // Gets the length of the array a
 #define dz_arrlen(a) ((!a) ? 0 : dz_array_header(a)->length)
@@ -30,16 +30,16 @@ extern const size_t DZ_ARR_INIT_CAPACITY;
 // Returns the last item in the array, and removes it
 #define dz_arrpop(a)                                                 \
   (DZ_ASSERT(a), DZ_ASSERT(dz_array_header(a)->length),              \
-   dz_arr_maybe_shrink(dz_array_header(a), sizeof(*a), (void **)&a), \
+   dz_impl_arr_maybe_shrink(dz_array_header(a), sizeof(*a), (void **)&a), \
    dz_array_header(a)->length--, a[dz_array_header(a)->length])
 
 // Pushes an item into a. a can be a NULL pointer
 #define dz_arrpush(a, item)                             \
   do {                                                  \
     if (!a) {                                           \
-      dz_arr_init((void **)(&a), sizeof(*a));           \
+      dz_impl_arr_init((void **)(&a), sizeof(*a));           \
     } else {                                            \
-      dz_arr_maybe_grow(dz_array_header(a), sizeof(*a), \
+      dz_impl_arr_maybe_grow(dz_array_header(a), sizeof(*a), \
                         (void **)&a);                   \
     }                                                   \
     a[dz_array_header(a)->length++] = item;             \
@@ -64,17 +64,26 @@ extern const size_t DZ_ARR_INIT_CAPACITY;
 
 // Removes the item at index `index`, and shifts the rest of the
 // array to fill the space up
+// O(n) time
 #define dz_arrremove(a, index)                                      \
   ((!a) ? (void)0                                                   \
-        : dz_arr_remove_impl(dz_array_header(a), index, sizeof(*a), \
+        : dz_impl_arr_remove(dz_array_header(a), index, sizeof(*a), \
                              (void **)&a))
+
+// Removes the item at index `index` by replacing it with the last
+// element in the array Works in O(1) time, but does not preserve
+// ordering of the array
+#define dz_arrremove_and_replace(a, index)                          \
+  ((!a) ? (void)0                                                   \
+        : dz_impl_arr_remove_and_replace(dz_array_header(a), index, \
+                                         sizeof(*a), (void **)&a))
 
 // Inserts an item into the index `index`, and shift the rest
 // of the array to accomodate
 #define dz_arrinsert(a, index, item)                      \
   do {                                                    \
     DZ_ASSERT(a);                                         \
-    dz_arr_shift_at_index_impl(dz_array_header(a), index, \
+    dz_impl_arr_shift_at_index(dz_array_header(a), index, \
                                sizeof(*a), (void **)&a);  \
     a[index] = item;                                      \
   } while (0);
@@ -91,18 +100,22 @@ typedef struct DZArrayHeader {
 
 #define dz_array_header(a) (&((DZArrayHeader *)a)[-1])
 
-extern void dz_arr_init(void **arr_ref, size_t item_size);
-extern void dz_arr_maybe_grow(DZArrayHeader *header,
+extern void dz_impl_arr_init(void **arr_ref, size_t item_size);
+extern void dz_impl_arr_maybe_grow(DZArrayHeader *header,
                               size_t element_size, void **arr_ptr);
-extern void dz_arr_maybe_shrink(DZArrayHeader *header,
+extern void dz_impl_arr_maybe_shrink(DZArrayHeader *header,
                                 size_t element_size, void **arr_ptr);
-extern void dz_arr_free_impl(DZArrayHeader *arr);
-extern void dz_arr_remove_impl(DZArrayHeader *header,
+extern void dz_impl_arr_free(DZArrayHeader *arr);
+extern void dz_impl_arr_remove(DZArrayHeader *header,
                                size_t index_to_remove,
                                size_t element_size, void **arr_ptr);
-extern void dz_arr_shift_at_index_impl(DZArrayHeader *header,
+extern void dz_impl_arr_remove_and_replace(DZArrayHeader *header,
+                               size_t index_to_remove,
+                               size_t element_size, void **arr_ptr);
+extern void dz_impl_arr_shift_at_index(DZArrayHeader *header,
                                        size_t index_to_add,
                                        size_t element_size,
                                        void **arr_ptr);
-extern void dz_arrprint_impl(void *arr, const char *format,
+extern void dz_impl_arrprint(void *arr, const char *format,
                              size_t element_size);
+

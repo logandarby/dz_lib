@@ -18,7 +18,7 @@ static inline uint8_t *dz_arr_get_ptr_from_header(DZArrayHeader *header) {
   return (uint8_t *)&header[1];
 }
 
-void dz_arr_init(void **arr_ref, size_t item_size) {
+void dz_impl_arr_init(void **arr_ref, size_t item_size) {
   dz_assert(arr_ref != NULL);
   dz_assert(*arr_ref == NULL); // Should initialize a null array
   DZArrayHeader *header = (DZArrayHeader *)malloc(
@@ -36,7 +36,7 @@ static void dz_arr_resize(DZArrayHeader *header, size_t element_size,
   *arr_ptr = dz_arr_get_ptr_from_header(new_header);
 }
 
-void dz_arr_maybe_grow(DZArrayHeader *header, size_t element_size,
+void dz_impl_arr_maybe_grow(DZArrayHeader *header, size_t element_size,
                        void **arr_ptr) {
   if (header->length >= header->capacity) {
     const size_t new_capacity = header->capacity * DZ_ARR_RESIZE_UP;
@@ -44,7 +44,7 @@ void dz_arr_maybe_grow(DZArrayHeader *header, size_t element_size,
   }
 }
 
-void dz_arr_maybe_shrink(DZArrayHeader *header, size_t element_size,
+void dz_impl_arr_maybe_shrink(DZArrayHeader *header, size_t element_size,
                          void **arr_ptr) {
   size_t shrunk_capacity =
       imax(header->capacity / DZ_ARR_RESIZE_DOWN, DZ_ARR_INIT_CAPACITY);
@@ -54,7 +54,7 @@ void dz_arr_maybe_shrink(DZArrayHeader *header, size_t element_size,
   }
 }
 
-void dz_arr_remove_impl(DZArrayHeader *header, size_t index_to_remove,
+void dz_impl_arr_remove(DZArrayHeader *header, size_t index_to_remove,
                         size_t element_size, void **arr_ptr) {
   uint8_t *array_bytes = (uint8_t *)*arr_ptr;
   for (size_t i = index_to_remove; i < header->length; i++) {
@@ -62,15 +62,24 @@ void dz_arr_remove_impl(DZArrayHeader *header, size_t index_to_remove,
            element_size);
   }
   header->length--;
-  dz_arr_maybe_shrink(header, element_size, arr_ptr);
+  dz_impl_arr_maybe_shrink(header, element_size, arr_ptr);
 }
 
-void dz_arr_shift_at_index_impl(DZArrayHeader *header, size_t index_to_add,
+
+void dz_impl_arr_remove_and_replace(DZArrayHeader *header,
+                               size_t index_to_remove,
+                               size_t element_size, void **arr_ptr) {
+  uint8_t *array_bytes = (uint8_t *)*arr_ptr;
+  header->length--;
+  memcpy(&array_bytes[index_to_remove * element_size], &array_bytes[header->length * element_size], element_size);
+}
+
+void dz_impl_arr_shift_at_index(DZArrayHeader *header, size_t index_to_add,
                                 size_t element_size, void **arr_ptr) {
   dz_assert(*arr_ptr);
   dz_assert(index_to_add <= header->length);
   header->length++;
-  dz_arr_maybe_grow(header, element_size, arr_ptr);
+  dz_impl_arr_maybe_grow(header, element_size, arr_ptr);
   uint8_t *array_bytes = (uint8_t *)*arr_ptr;
   for (size_t i = header->length - 1; i > index_to_add; i--) {
     memmove(&array_bytes[i * element_size], &array_bytes[(i - 1) * element_size],
@@ -78,7 +87,7 @@ void dz_arr_shift_at_index_impl(DZArrayHeader *header, size_t index_to_add,
   }
 }
 
-void dz_arr_free_impl(DZArrayHeader *arr) {
+void dz_impl_arr_free(DZArrayHeader *arr) {
   dz_assert(arr);
   free(arr);
 }
