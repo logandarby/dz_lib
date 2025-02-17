@@ -28,21 +28,22 @@ extern const size_t DZ_ARR_INIT_CAPACITY;
 #define dz_arrlen(a) ((!a) ? 0 : dz_array_header(a)->length)
 
 // Returns the last item in the array, and removes it
-#define dz_arrpop(a)                                                 \
-  (DZ_ASSERT(a), DZ_ASSERT(dz_array_header(a)->length),              \
-   dz_impl_arr_maybe_shrink(dz_array_header(a), sizeof(*a), (void **)&a), \
+#define dz_arrpop(a)                                        \
+  (DZ_ASSERT(a), DZ_ASSERT(dz_array_header(a)->length),     \
+   dz_impl_arr_maybe_shrink(dz_array_header(a), sizeof(*a), \
+                            (void **)&a),                   \
    dz_array_header(a)->length--, a[dz_array_header(a)->length])
 
 // Pushes an item into a. a can be a NULL pointer
-#define dz_arrpush(a, item)                             \
-  do {                                                  \
-    if (!a) {                                           \
+#define dz_arrpush(a, item)                                  \
+  do {                                                       \
+    if (!a) {                                                \
       dz_impl_arr_init((void **)(&a), sizeof(*a));           \
-    } else {                                            \
+    } else {                                                 \
       dz_impl_arr_maybe_grow(dz_array_header(a), sizeof(*a), \
-                        (void **)&a);                   \
-    }                                                   \
-    a[dz_array_header(a)->length++] = item;             \
+                             (void **)&a);                   \
+    }                                                        \
+    a[dz_array_header(a)->length++] = item;                  \
   } while (0)
 
 // Prints the contents of the array
@@ -88,6 +89,22 @@ extern const size_t DZ_ARR_INIT_CAPACITY;
     a[index] = item;                                      \
   } while (0);
 
+// Returns the index of the item stored at item_addr.
+// NOTE: item_addr must be a valid address
+// Uses memcmp under the hood to compare the value stored at
+// item_addr, and the items in the array
+// If the item is not found, returns -1.
+#define dz_arrindexof(a, item_addr)                                 \
+  (DZ_STATIC_ASSERT(                                                \
+       sizeof(*a) == sizeof(*item_addr),                            \
+       "In dz_addrindexof: The size of the item to find and the "   \
+       "size of the items in the DzArray must match."),             \
+   (!a || !item_addr)                                               \
+       ? -1                                                         \
+       : dz_impl_arr_indexof(dz_array_header(a), (void *)item_addr, \
+                             sizeof(*a), sizeof(*item_addr),        \
+                             (void **)&a))
+
 // Implementation Details:
 
 // Used to store information about the array
@@ -102,20 +119,27 @@ typedef struct DZArrayHeader {
 
 extern void dz_impl_arr_init(void **arr_ref, size_t item_size);
 extern void dz_impl_arr_maybe_grow(DZArrayHeader *header,
-                              size_t element_size, void **arr_ptr);
+                                   size_t element_size,
+                                   void **arr_ptr);
 extern void dz_impl_arr_maybe_shrink(DZArrayHeader *header,
-                                size_t element_size, void **arr_ptr);
+                                     size_t element_size,
+                                     void **arr_ptr);
 extern void dz_impl_arr_free(DZArrayHeader *arr);
 extern void dz_impl_arr_remove(DZArrayHeader *header,
                                size_t index_to_remove,
                                size_t element_size, void **arr_ptr);
 extern void dz_impl_arr_remove_and_replace(DZArrayHeader *header,
-                               size_t index_to_remove,
-                               size_t element_size, void **arr_ptr);
+                                           size_t index_to_remove,
+                                           size_t element_size,
+                                           void **arr_ptr);
 extern void dz_impl_arr_shift_at_index(DZArrayHeader *header,
                                        size_t index_to_add,
                                        size_t element_size,
                                        void **arr_ptr);
 extern void dz_impl_arrprint(void *arr, const char *format,
                              size_t element_size);
-
+extern ssize_t dz_impl_arr_indexof(DZArrayHeader *header,
+                                   void *item_to_find_addr,
+                                   size_t array_element_size,
+                                   size_t item_to_find_size,
+                                   void **arr_ptr);

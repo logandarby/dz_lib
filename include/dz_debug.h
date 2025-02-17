@@ -79,6 +79,11 @@ extern bool str_eq(const char *s1, const char *s2, size_t n);
 #define DZ_ASSERT(...) \
   DZ_EXPAND_MACRO(     \
       DZ_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_, __VA_ARGS__))
+// Asserts a constant condition at compile time 
+// Arguments: 
+//  - Condition: The constant, compile time condition to assert 
+//  - Message: The message to display to the user
+#define DZ_STATIC_ASSERT(cond, msg) ({ static_assert(cond, msg); 0; })
 // Internal macro impl
 #define DZ_INTERNAL_ASSERT_WITH_MSG(type, check, ...) \
   dz_impl_assert_msg(__FILE__, __func__, __LINE__,    \

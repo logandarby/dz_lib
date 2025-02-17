@@ -192,6 +192,24 @@ TEST(Array, Remove_and_replace) {
   dz_arrfree(arr);
 }
 
+TEST(Array, Find_Index) {
+  DZArray(double) arr = NULL;
+
+  for (size_t i = 0; i < 10; i++) {
+    dz_arrpush(arr, (double)i);
+  }
+  double find_expr = 6;
+  ASSERT_EQ(dz_arrindexof(arr, &find_expr), 6);
+  find_expr = 0;
+  ASSERT_EQ(dz_arrindexof(arr, &find_expr), 0);
+  find_expr = 9;
+  ASSERT_EQ(dz_arrindexof(arr, &find_expr), 9);
+  find_expr = 10;
+  ASSERT_EQ(dz_arrindexof(arr, &find_expr), -1);
+
+  dz_arrfree(arr);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
