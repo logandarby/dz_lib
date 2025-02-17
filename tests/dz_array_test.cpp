@@ -210,6 +210,29 @@ TEST(Array, Find_Index) {
   dz_arrfree(arr);
 }
 
+TEST(Array, Clear) {
+  DZArray(double) arr = NULL;
+
+  for (size_t i = 0; i < 10; i++) {
+    dz_arrpush(arr, (double)i);
+  }
+
+  dz_arrclear(arr);
+  
+  ASSERT_EQ(dz_arrlen(arr), 0);
+
+  dz_arrpush(arr, 1);
+  dz_arrpush(arr, 2);
+  dz_arrpush(arr, 3);
+
+  ASSERT_EQ(dz_arrlen(arr), 3);
+  ASSERT_EQ(arr[0], 1);
+  ASSERT_EQ(arr[1], 2);
+  ASSERT_EQ(arr[2], 3);
+
+  dz_arrfree(arr);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

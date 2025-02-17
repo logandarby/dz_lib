@@ -105,6 +105,9 @@ extern const size_t DZ_ARR_INIT_CAPACITY;
                              sizeof(*a), sizeof(*item_addr),        \
                              (void **)&a))
 
+#define dz_arrclear(a) \
+  (dz_array_header(a)->length = 0)
+
 // Implementation Details:
 
 // Used to store information about the array
