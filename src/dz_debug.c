@@ -69,6 +69,14 @@ bool str_eq(const char* s1, const char* s2, size_t n) {
   return strncmp(s1, s2, n) == 0;
 }
 
+bool mem_eq(const void* s1, const void* s2, size_t s1_size,
+            size_t s2_size) {
+  if (s1_size != s2_size) {
+    return false;
+  }
+  return memcmp(s1, s2, s1_size) == 0;
+}
+
 void dz_impl_assert_msg(const char* filename,
                         const char* functionname,
                         const int line_number,

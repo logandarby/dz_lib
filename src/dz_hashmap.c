@@ -1,23 +1,28 @@
 #include "dz_hashmap.h"
 
-#include <math.h>
-#include <string.h>
 #include <limits.h>
+#include <math.h>
+#include <stdlib.h>
 
 #include "dz_debug.h"
 
 typedef struct DzHashmapItem {
   char *key;
   char *value;
+  size_t keysize;
+  size_t valuesize;
 } DzHashmapItem;
 
 typedef struct DzHashmapInstance {
   DzHashmapItem **items;
   size_t capacity;
   size_t count;
+  size_t salt;  // Used to prevent hash table attacks
 } DzHashmapInstance;
 
+// 283
 const size_t HM_INIT_CAPACITY = 53;
+// 100008869
 static const size_t HM_PRIME_1 = 100008317;
 static const size_t HM_PRIME_2 = 100008317 + 2;
 static const double HM_RESIZE_UP_THRESHOLD = 0.7;
@@ -70,21 +75,26 @@ const char *hm_error_get_failure_str(DzHmError error_enum) {
   return DZ_HM_ERROR_STRINGS[error_enum];
 }
 
-DzHashmap hm_init_with_capacity(size_t capacity, DzHmError *error) {
-  DzHashmap hm = (DzHashmap)calloc(1, sizeof(struct DzHashmapInstance));
-  DZ_ASSERT(hm, "Malloc failed on hashmap failed");
+DzHashmap hm_init_with_capacity(const size_t capacity,
+                                DzHmError *error) {
+  DzHashmap hm =
+      (DzHashmap)calloc(1, sizeof(struct DzHashmapInstance));
+  DZ_ASSERT(hm, "Malloc on hashmap failed");
   if (!hm) {
     hm_error_set(error, DzHmError_Memory);
     return NULL;
   }
   hm->count = 0;
   hm->capacity = capacity;
-  hm->items = (DzHashmapItem **)calloc(hm->capacity, (sizeof *hm->items));
+  hm->items =
+      (DzHashmapItem **)calloc(hm->capacity, (sizeof *hm->items));
   DZ_ASSERT(hm->items, "Malloc failed on hashmap items");
   if (!hm->items) {
     hm_error_set(error, DzHmError_Memory);
     return NULL;
   }
+  // Cryptographically secure salt
+  arc4random_buf(&hm->salt, sizeof(hm->salt));
   return hm;
 }
 
@@ -123,64 +133,81 @@ void hm_free(DzHashmap hm) {
   hm = NULL;
 }
 
-static DzHashmapItem *hm_item_create(const char *key, const char *value) {
+static DzHashmapItem *hm_item_create(const void *key,
+                                     const void *value,
+                                     const size_t keysize,
+                                     const size_t valuesize) {
   DZ_ASSERT(key, "Caller must supply a key");
   DZ_ASSERT(value, "Caller must supply a value");
-  if (!key || !value) {
+  if (!key || !value || !keysize || !valuesize) {
     return NULL;
   }
-  DzHashmapItem *item = (DzHashmapItem *)calloc(1, sizeof(DzHashmapItem));
-  item->key = strdup(key);
-  DZ_ASSERT(item->key, "Strdup failed.");
-  item->value = strdup(value);
-  DZ_ASSERT(item->value, "Strdup failed.");
+  DzHashmapItem *item =
+      (DzHashmapItem *)calloc(1, sizeof(DzHashmapItem));
+  item->key = (char *)calloc(keysize, sizeof(char));
+  DZ_ASSERT(item->key, "Could not calloc memory");
+  memcpy(item->key, key, keysize);
+  item->value = (char *)calloc(valuesize, sizeof(char));
+  DZ_ASSERT(item->value, "Could not calloc memory");
+  memcpy(item->value, value, valuesize);
+  item->valuesize = valuesize;
+  item->keysize = keysize;
   return item;
 }
 
-static size_t hm_internal_hash(const char *str, const size_t a,
-                               const size_t bucket_count) {
+static size_t hm_internal_hash(const void *str, const size_t str_len,
+                               const size_t a,
+                               const size_t bucket_count,
+                               const size_t attempt, size_t salt) {
   DZ_ASSERT(str);
-  size_t hash = 0;
-  const size_t str_len = strlen(str);
+  const char *str_bytes = (const char *)str;
+  size_t hash = attempt + salt;
   for (size_t i = 0; i < str_len; i++) {
-    hash += pow(a, str_len - (i + 1)) * (size_t)str[i];
+    hash += pow(a, str_len - (i + 1)) * str_bytes[i];
   }
   return hash % bucket_count;
 }
 
-static size_t hm_internal_get_index_hash(const char *str,
+static size_t hm_internal_get_index_hash(const void *str,
+                                         const size_t str_len,
                                          const size_t bucket_count,
-                                         const size_t attempt) {
+                                         const size_t attempt,
+                                         const size_t salt) {
   DZ_ASSERT(str);
-  const size_t hash_a =
-      hm_internal_hash(str, HM_PRIME_1, bucket_count);
-  const size_t hash_b =
-      hm_internal_hash(str, HM_PRIME_2, bucket_count);
+  const size_t hash_a = hm_internal_hash(str, str_len, HM_PRIME_1,
+                                         bucket_count, attempt, salt);
+  const size_t hash_b = hm_internal_hash(str, str_len, HM_PRIME_2,
+                                         bucket_count, attempt, salt);
   return (hash_a + (attempt * (hash_b + 1))) % bucket_count;
 }
 
-const char *hm_get(DzHashmap hm, const char *key) {
+const void *hm_get(DzHashmap hm, const void *key,
+                   const size_t keysize) {
   DZ_ASSERT(hm, "Caller must supply a hashmap");
   DZ_ASSERT(key, "Caller must supply a key");
-  if (!hm || !key) {
+  if (!hm || !key || !keysize) {
     return NULL;
   }
-  size_t index = hm_internal_get_index_hash(key, hm->capacity, 0);
+  size_t index = hm_internal_get_index_hash(
+      key, keysize, hm->capacity, 0, hm->salt);
   DzHashmapItem *current_item = hm->items[index];
   size_t i = 1;
   while (current_item != NULL) {
     if (current_item != &DELETED_ITEM &&
-        str_eq(current_item->key, key, strlen(current_item->key))) {
+        mem_eq(current_item->key, key, current_item->keysize,
+               keysize)) {
       return current_item->value;
     }
-    index = hm_internal_get_index_hash(key, hm->capacity, i);
+    index = hm_internal_get_index_hash(key, keysize, hm->capacity, i,
+                                       hm->salt);
     current_item = hm->items[index];
     i++;
   }
   return NULL;
 }
 
-void hm_resize(DzHashmap hm, const size_t new_size, DzHmError *error) {
+void hm_resize(DzHashmap hm, const size_t new_size,
+               DzHmError *error) {
   DZ_ASSERT(hm, "Caller must supply a hashmap");
   if (new_size < HM_INIT_CAPACITY) {
     return;
@@ -193,9 +220,11 @@ void hm_resize(DzHashmap hm, const size_t new_size, DzHmError *error) {
   for (size_t i = 0; i < hm->count; i++) {
     DzHashmapItem *old_item = hm->items[i];
     if (old_item && old_item != &DELETED_ITEM) {
-      hm_add(new_hm_buffer, old_item->key, old_item->value, error);
+      hm_add(new_hm_buffer, old_item->key, old_item->keysize,
+             old_item->value, old_item->valuesize, error);
       if (hm_has_error(error)) {
-        DZ_ASSERT(!hm_has_error(error), "There was a problem adding an item");
+        DZ_ASSERT(!hm_has_error(error),
+                  "There was a problem adding an item");
         hm_free(new_hm_buffer);
         return;
       }
@@ -216,13 +245,16 @@ void hm_resize(DzHashmap hm, const size_t new_size, DzHmError *error) {
   hm_free(new_hm_buffer);
 }
 
-void hm_add(DzHashmap hm, const char *key, const char *value,
+void hm_add(DzHashmap hm, const void *key, const size_t keysize,
+            const void *value, const size_t valuesize,
             DzHmError *error) {
   DZ_ASSERT(hm, "Caller must supply a hashmap");
   DZ_ASSERT(key, "Caller must supply a key");
+  DZ_ASSERT(keysize, "Caller must supply a key");
   DZ_ASSERT(value, "Caller must supply a value");
-  DZ_ASSERT(strlen(key) < MAX_KEY_SIZE, "Key is too large");
-  if (!hm || !key || !value) {
+  DZ_ASSERT(valuesize, "Caller must supply a value");
+  DZ_ASSERT(keysize < MAX_KEY_SIZE, "Key is too large");
+  if (!hm || !key || !value || !valuesize || !keysize) {
     hm_error_set(error, DzHmError_Memory);
     return;
   }
@@ -232,17 +264,24 @@ void hm_add(DzHashmap hm, const char *key, const char *value,
       return;
     }
   }
-  DzHashmapItem *item = hm_item_create(key, value);
-  size_t index = hm_internal_get_index_hash(key, hm->capacity, 0);
+  DzHashmapItem *item =
+      hm_item_create(key, value, keysize, valuesize);
+  size_t index = hm_internal_get_index_hash(
+      key, keysize, hm->capacity, 0, hm->salt);
   DzHashmapItem *current_item = hm->items[index];
   size_t i = 1;
+  ssize_t last_index = -1;
+  size_t attempt = 0;
   while (current_item != NULL && current_item != &DELETED_ITEM) {
-    if (str_eq(current_item->key, key, strlen(current_item->key))) {
+    if (mem_eq(current_item->key, key, current_item->keysize,
+               keysize)) {
       hm_item_free(current_item);
       hm->items[index] = item;
       return;
     }
-    index = hm_internal_get_index_hash(key, hm->capacity, i);
+    index = hm_internal_get_index_hash(key, keysize, hm->capacity, i,
+                                       hm->salt);
+    last_index = index;
     current_item = hm->items[index];
     i++;
   }
@@ -250,23 +289,27 @@ void hm_add(DzHashmap hm, const char *key, const char *value,
   hm->count++;
 }
 
-void hm_delete(DzHashmap hm, const char *key) {
+void hm_delete(DzHashmap hm, const void *key, const size_t keysize) {
   DZ_ASSERT(hm, "Caller must supply a hashmap");
   DZ_ASSERT(key, "Caller must supply a key");
-  if (!hm || !key) {
+  DZ_ASSERT(keysize, "Caller must supply a key");
+  if (!hm || !key || !keysize) {
     return;
   }
-  size_t index = hm_internal_get_index_hash(key, hm->capacity, 0);
+  size_t index = hm_internal_get_index_hash(
+      key, keysize, hm->capacity, 0, hm->salt);
   DzHashmapItem *current_item = hm->items[index];
   size_t i = 1;
   while (current_item != NULL) {
-    if (str_eq(current_item->key, key, strlen(current_item->key))) {
+    if (mem_eq(current_item->key, key, current_item->keysize,
+               keysize)) {
       hm_item_free(current_item);
       hm->items[index] = &DELETED_ITEM;
       hm->count--;
       break;
     }
-    index = hm_internal_get_index_hash(key, hm->capacity, i);
+    index = hm_internal_get_index_hash(key, keysize, hm->capacity, i,
+                                       hm->salt);
     current_item = hm->items[index];
     i++;
   }
