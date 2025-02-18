@@ -322,3 +322,15 @@ size_t hm_count(DzHashmap hm) {
   }
   return hm->count;
 }
+
+const char *hm_get_str(DzHashmap hm, const char *key) {
+  return (char*)hm_get(hm, key, strlen(key) + 1);
+}
+
+void hm_add_str(DzHashmap hm, const char *key, const char *value, DzHmError *error) {
+  hm_add(hm, key, strlen(key) + 1, value, strlen(value) + 1, error);
+}
+
+void hm_delete_str(DzHashmap hm, const char *key) {
+  hm_delete(hm, key, strlen(key) + 1);
+}
